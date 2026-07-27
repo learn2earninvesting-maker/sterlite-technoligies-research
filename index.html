@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STLTECH — Deep Dive Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#04080f; --panel:#0a1220; --panel2:#0c1526; --line:#17233b;
+  --amber:#f0a500; --amber-dim:rgba(240,165,0,.14);
+  --txt:#e8edf6; --muted:#8a94a6; --faint:#5a6577;
+  --red:#ff5964; --red-dim:rgba(255,89,100,.13);
+  --green:#37d39b; --green-dim:rgba(55,211,155,.13);
+  --blue:#5aa9ff; --purple:#b48cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:'DM Sans',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;padding-bottom:88px}
+h1,h2,h3,h4{font-family:'Syne',sans-serif;letter-spacing:-.01em;line-height:1.15}
+.mono{font-family:'JetBrains Mono',monospace}
+.wrap{max-width:1140px;margin:0 auto;padding:0 18px}
+
+/* ---------- header ---------- */
+header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#060c17,#04080f);position:relative;overflow:hidden}
+header::after{content:"";position:absolute;top:-40%;right:-10%;width:340px;height:340px;background:radial-gradient(circle,var(--amber-dim),transparent 70%);pointer-events:none}
+.head-top{display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px;padding:26px 0 20px;position:relative;z-index:1}
+.tick{font-family:'Syne';font-weight:800;font-size:12px;letter-spacing:.22em;color:var(--amber)}
+.coname{font-size:clamp(26px,5vw,40px);font-weight:800;margin-top:2px}
+.subti{color:var(--muted);font-size:13.5px;margin-top:3px}
+.verdict-badge{margin-left:auto;text-align:right}
+.vb-call{display:inline-block;font-family:'Syne';font-weight:800;font-size:15px;letter-spacing:.04em;line-height:1.25;padding:8px 16px;border-radius:8px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(240,165,0,.45)}
+.vb-sub{color:var(--muted);font-size:12px;margin-top:7px}
+.kpibar{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--line);border-top:1px solid var(--line);position:relative;z-index:1}
+.kpi{background:var(--bg);padding:13px 16px}
+.kpi .l{color:var(--faint);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase}
+.kpi .v{font-family:'JetBrains Mono';font-weight:700;font-size:17px;margin-top:3px}
+.kpi .v small{color:var(--muted);font-weight:400;font-size:11px}
+
+/* ---------- legend ---------- */
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:11px 0;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+.legend b{color:var(--txt);font-weight:600;font-family:'Syne';letter-spacing:.05em;margin-right:2px}
+
+/* ---------- tag pills ---------- */
+.t{font-family:'JetBrains Mono';font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;vertical-align:middle;letter-spacing:.03em}
+.tf{background:var(--green-dim);color:var(--green)}
+.te{background:var(--amber-dim);color:var(--amber)}
+.to{background:rgba(180,140,255,.14);color:var(--purple)}
+.src{font-family:'JetBrains Mono';font-size:11px;color:var(--blue);background:rgba(90,169,255,.09);padding:1px 6px;border-radius:4px;white-space:nowrap}
+.nd{font-family:'JetBrains Mono';font-size:11px;font-weight:700;color:var(--red);border:1px dashed rgba(255,89,100,.5);padding:0 6px;border-radius:4px;letter-spacing:.04em}
+.flag{color:var(--red);font-weight:600}
+
+/* ---------- desktop tabs ---------- */
+.tabs-top{display:none;gap:6px;flex-wrap:wrap;padding:14px 0 4px;position:sticky;top:0;background:rgba(4,8,15,.94);backdrop-filter:blur(8px);z-index:20;border-bottom:1px solid var(--line)}
+.tabs-top button{font-family:'JetBrains Mono';font-size:11.5px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 9px;cursor:pointer;transition:.15s;white-space:nowrap}
+.tabs-top button:hover{color:var(--txt);border-color:#2a3a5a}
+.tabs-top button.on{color:var(--bg);background:var(--amber);border-color:var(--amber);font-weight:700}
+.tabs-top button .n{opacity:.55;margin-right:5px}
+.tabs-top button.on .n{opacity:.8}
+
+/* ---------- content ---------- */
+main{padding:26px 0 40px}
+.panel{display:none;animation:fade .35s ease}
+.panel.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+.sec-n{font-family:'JetBrains Mono';font-size:13px;color:var(--amber);font-weight:700}
+.sec-t{font-size:clamp(21px,3.6vw,29px);font-weight:800}
+.sec-budget{margin-left:auto;font-family:'JetBrains Mono';font-size:10.5px;color:var(--faint)}
+.lead{color:var(--muted);font-size:14px;margin:10px 0 20px;max-width:70ch}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.card h4{font-size:15px;font-weight:700;margin-bottom:9px;color:var(--txt)}
+.card p{font-size:13.5px;color:#c3ccda;margin-bottom:9px}
+.card p:last-child{margin-bottom:0}
+.grid2{display:grid;grid-template-columns:1fr;gap:16px}
+@media(min-width:760px){.grid2{grid-template-columns:1fr 1fr}}
+.big{font-family:'JetBrains Mono';font-weight:700;font-size:30px;line-height:1}
+.big.red{color:var(--red)} .big.amber{color:var(--amber)} .big.green{color:var(--green)}
+.metric-lbl{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+
+ul.clean{list-style:none;display:flex;flex-direction:column;gap:9px}
+ul.clean li{font-size:13.5px;color:#c3ccda;padding-left:18px;position:relative}
+ul.clean li::before{content:"—";position:absolute;left:0;color:var(--amber)}
+li b,p b{color:var(--txt)}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:4px 0}
+table.mono-t td:not(:first-child),table.mono-t th:not(:first-child){font-family:'JetBrains Mono'}
+th{text-align:left;color:var(--faint);font-weight:600;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid rgba(23,35,59,.55);color:#c9d2df}
+tr:hover td{background:rgba(240,165,0,.03)}
+td.hi{color:var(--amber);font-weight:600}
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin-bottom:16px}
+.tbl-scroll table{margin:0} .tbl-scroll th,.tbl-scroll td{padding:9px 12px}
+
+.chart-box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 16px 8px;margin-bottom:16px}
+.chart-box h4{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:12px;font-family:'DM Sans'}
+.chart-note{font-size:11.5px;color:var(--muted);line-height:1.55;padding:12px 2px 4px;margin-top:6px;border-top:1px solid var(--line)}
+.chart-note b{color:var(--txt);font-family:'JetBrains Mono';font-weight:700}
+.chart-holder{position:relative;height:300px}
+
+.conf{margin-top:18px;padding:11px 15px;border-left:3px solid var(--amber);background:var(--amber-dim);border-radius:0 8px 8px 0;font-size:12.5px;color:#d8dee8}
+.conf b{color:var(--amber);font-family:'Syne';letter-spacing:.04em}
+.callout{border-left:3px solid var(--red);background:var(--red-dim);padding:12px 15px;border-radius:0 8px 8px 0;font-size:13.5px;margin:6px 0 14px;color:#ffd9dc}
+.callout.pos{border-color:var(--green);background:var(--green-dim);color:#c9f5e4}
+.pill-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{font-family:'JetBrains Mono';font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
+.chip.miss{color:var(--red);border-color:rgba(255,89,100,.35)}
+.chip.hit{color:var(--green);border-color:rgba(55,211,155,.35)}
+.chip.part{color:var(--amber);border-color:rgba(240,165,0,.35)}
+
+.skip-state{text-align:center;padding:54px 20px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}
+.skip-state .mono{color:var(--amber);font-size:13px;display:block;margin-top:8px}
+
+/* ---------- mobile bottom nav ---------- */
+.tabs-bot{position:fixed;bottom:0;left:0;right:0;background:rgba(6,11,22,.97);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;overflow-x:auto;scroll-snap-type:x proximity;z-index:40;-webkit-overflow-scrolling:touch}
+.tabs-bot::-webkit-scrollbar{height:0}
+.tabs-bot button{flex:0 0 auto;scroll-snap-align:center;background:none;border:none;color:var(--faint);font-family:'JetBrains Mono';font-size:9.5px;padding:10px 12px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:64px;border-top:2px solid transparent}
+.tabs-bot button .bn{font-size:14px;font-weight:700;color:var(--muted)}
+.tabs-bot button .bl{white-space:nowrap;letter-spacing:.02em}
+.tabs-bot button.on{color:var(--amber);border-top-color:var(--amber)}
+.tabs-bot button.on .bn{color:var(--amber)}
+
+@media(min-width:900px){
+  .tabs-top{display:flex}
+  .tabs-bot{display:none}
+  body{padding-bottom:0}
+}
+.disc{font-size:11px;color:var(--faint);border-top:1px solid var(--line);padding:18px;text-align:center;max-width:80ch;margin:20px auto 0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="head-top">
+      <div>
+        <div class="tick">NSE : STLTECH · BSE 532374</div>
+        <div class="coname">Sterlite Technologies</div>
+        <div class="subti">Optical fibre &amp; connectivity (Cables – Telecom) · Vedanta group · Deep-dive memo</div>
+      </div>
+      <div class="verdict-badge">
+        <span class="vb-call">WATCH WITH HAWK'S EYE</span>
+        <div class="vb-sub">tracking position · scale in only as proof lands</div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="kpibar">
+      <div class="kpi"><div class="l">CMP band</div><div class="v">₹521–565 <small>24 Jul</small></div></div>
+      <div class="kpi"><div class="l">PW fair value</div><div class="v" style="color:var(--red)">~₹292</div></div>
+      <div class="kpi"><div class="l">Downside</div><div class="v" style="color:var(--red)">~47%</div></div>
+      <div class="kpi"><div class="l">Mkt cap</div><div class="v">₹28,000 <small>cr</small></div></div>
+      <div class="kpi"><div class="l">P/E (TTM)</div><div class="v">~116×</div></div>
+      <div class="kpi"><div class="l">ROCE FY26</div><div class="v">8.1%</div></div>
+      <div class="kpi"><div class="l">As-of</div><div class="v">27 Jul 26</div></div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="legend">
+      <b>KEY</b>
+      <span><span class="t tf">F</span> fact (sourced)</span>
+      <span><span class="t te">E</span> estimate (derived)</span>
+      <span><span class="t to">O</span> opinion</span>
+      <span><span class="src">source · period</span></span>
+      <span><span class="nd">NOT DISCLOSED</span></span>
+      <span><span class="flag">bold red = red flag</span></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs-top" id="tabsTop"></nav>
+</div>
+
+<main class="wrap" id="main"></main>
+
+<nav class="tabs-bot" id="tabsBot"></nav>
+
+<div class="disc">
+  Built under the equity-deep-dive anti-fabrication contract: every figure carries source + period; undisclosed items shown as NOT DISCLOSED; facts / estimates / opinions labelled; conflicts resolved newest-source-wins. Sources: six user files (StockScans/SOIC, Jul 2026 + Mar-2026 transcript notes + FY18–FY26 workbook) and online recency/peers (STL Q1 FY27 slides &amp; BSE filing; Screener; HFCL / Finolex / Polycab / KEI results, Apr–Jul 2026). Technicals populated from the user's TradingView weekly chart (Jul 26). <b>Not investment advice; research for the reader's own decision.</b>
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+const YRS=["FY18","FY19","FY20","FY21","FY22","FY23","FY24","FY25","FY26"];
+const D={
+ rev:[3177,5087,5154,4825,5437,6925,4083,3996,4745],
+ opm:[23.6,22.2,20.8,16.8,12.2,12.9,11.5,10.4,12.0],
+ ebitda:[749,1127,1069,811,665,890,470,416,569],
+ pat:[369,585,433,269,147,231,-71,-72,56],
+ roce:[26.7,26.6,18.0,11.8,8.1,10.6,4.0,3.5,8.1],
+ roe:[31.4,34.1,22.5,13.5,7.5,11.1,-3.5,-3.6,2.5],
+ cfo:[729,631,696,638,584,228,791,348,522],
+ ce:[2268,3637,4250,4931,5430,5925,5399,3916,4095],
+ ebit:[605,969,763,583,437,626,217,136,331]
+};
+
+/* ---------------- 19 sections ---------------- */
+const TABS=[
+{n:"01",short:"Verdict",title:"Verdict up front",budget:"200 w",body:`
+<p class="lead">Written first, not last. The conclusion sits where it will actually be read.</p>
+<div class="grid2">
+  <div class="card">
+    <h4>The call <span class="t to">O</span></h4>
+    <p><b>WATCH WITH HAWK'S EYE — tracking position, not a full buy.</b> A vertically-integrated fibre maker with a real preform moat and a genuine AI-data-centre tailwind, now showing a Q1 FY27 margin inflection — but still priced at 116× trailing earnings. Hold a small tracking position and scale in only as the proof points land, rather than chasing here.</p>
+    <div class="metric-lbl" style="margin-top:14px">PROBABILITY-WEIGHTED VALUE</div>
+    <div class="big red">~₹292 <span style="font-size:14px;color:var(--muted)">vs ₹549 → ~47% downside</span></div>
+  </div>
+  <div class="card">
+    <h4>Conviction: Medium <span class="t to">O</span></h4>
+    <p>Uncertainty is <b>split</b> — genuine <i>business</i> uncertainty (does the DC mix shift stick?) sitting on top of <i>data</i> uncertainty (governance opacity, Bahamas-trust structure, restated comparatives). Both argue for a bigger margin of safety than the price offers.</p>
+    <div class="metric-lbl" style="margin-top:14px">THESIS IN ONE SENTENCE</div>
+    <p style="color:#c3ccda">Cyclical fibre business at the early-favourable phase of an OFC up-cycle, with sub-cost-of-capital ten-year returns, priced for a structural re-rating it has not earned.</p>
+  </div>
+</div>
+<div class="card">
+  <h4>The single biggest reason this fails <span class="t to">O</span></h4>
+  <p>Optical fibre is brutally cyclical; the last up-cycle's 24% margins collapsed to 10%, and nothing in the record proves this cycle is structurally different — yet the price assumes it is.</p>
+</div>
+<div class="card">
+  <h4>Kill criteria — dated, observable</h4>
+  <ul class="clean">
+    <li>Reported EBITDA margin fails to hold <b>≥18% for three consecutive quarters</b> through FY27.</li>
+    <li>The <b>$1.11 bn PAL</b> does not convert into disclosed, dated purchase orders by <b>Q4 FY27</b>.</li>
+    <li>Any <b>auditor qualification, confirmed CFO exit, or promoter pledge / sell-down</b> in FY27 filings.</li>
+  </ul>
+</div>
+<div class="conf"><b>Confidence: MEDIUM</b> — high on trailing financials &amp; governance record; lower on forward margin durability, which is the crux.</div>`},
+
+{n:"02",short:"Business",title:"Business & value chain",budget:"400 w",body:`
+<p class="lead">What it sells, to whom, and who holds pricing power at each link — usually the whole story.</p>
+<div class="card">
+  <p><span class="t tf">F</span> One of only <b>six firms globally</b> that makes its own <b>glass preforms</b> — the ultra-pure silica core of every optical fibre — giving control from raw silicon to fibre, cable and connectors. <span class="src">Business Overview · Jul 26</span></p>
+</div>
+<div class="grid2">
+  <div class="card">
+    <h4>Optical Networking — the core</h4>
+    <p>Preforms → fibre → cable (Celesta ribbon up to 6,912 fibres) → connectivity products. Connectivity products carry <b>~30% margins</b> vs ~20% for cable, and are stickier once designed in. <span class="src">Business Overview · Jul 26</span></p>
+  </div>
+  <div class="card">
+    <h4>STL Digital — IT services</h4>
+    <p>~900 consultants, ~35 enterprise clients. FY26 revenue ₹284 cr (~$34m), EBITDA ₹3 cr — <b>a rounding error at group level.</b> <span class="src">Transcript · Mar 26</span></p>
+  </div>
+</div>
+<div class="callout">Pricing power sits at the preform / specialty-fibre end and connectivity products. At commodity cable, STL is a price-taker into a China-influenced market — exactly where margin gets destroyed in a downcycle. <span class="t to">O</span></div>
+<div class="card">
+  <h4>Critical dependencies</h4>
+  <ul class="clean">
+    <li><b>Germanium &amp; helium</b> input costs — elevated, supply-constrained. <span class="src">Transcript · Mar 26</span></li>
+    <li>US plant (South Carolina, BABA-compliant) now driving 39% North-America mix.</li>
+    <li>Top-5 customer concentration: <span class="nd">NOT DISCLOSED</span></li>
+  </ul>
+</div>
+<div class="conf"><b>Confidence: HIGH</b> on structure; MEDIUM on dependencies (customer concentration undisclosed).</div>`},
+
+{n:"03",short:"Industry",title:"Industry & competitive position",budget:"500 w",body:`
+<p class="lead">Five forces, each scored 1 (benign) – 5 (hostile) with an evidence anchor. <span class="t to">O</span></p>
+<div class="tbl-scroll"><table class="mono-t">
+<tr><th>Force</th><th>Score</th><th>Evidence</th></tr>
+<tr><td>Rivalry</td><td class="hi">4</td><td>Global OFC oversupplied, China-influenced; ex-China share only &gt;8%. HFCL/Finolex/Polycab all pushing fibre/DC.</td></tr>
+<tr><td>Buyer power</td><td class="hi">4</td><td>Hyperscalers &amp; Tier-1 telcos concentrated; the PAL itself carries a reciprocal risk-share — STL sharing downside.</td></tr>
+<tr><td>Supplier power</td><td class="hi">3</td><td>Germanium/helium constrained; partly mitigated by in-house preforms.</td></tr>
+<tr><td>New entrants</td><td class="hi">2</td><td>Preform capability is a genuine barrier (six makers worldwide).</td></tr>
+<tr><td>Substitutes</td><td class="hi">2</td><td>Fibre is the substitute (vs copper) — tailwind, not threat.</td></tr>
+</table></div>
+<div class="callout">Pricing-power test — the honest one: in the last downcycle gross margin <b>did not hold</b>. GPM fell 60% (FY18) → ~50% (FY26) and never recovered; OPM went 23.6% → 10.4% → 12%. <b>A moat that can't defend gross margin through a cycle is not a moat at the level the valuation assumes.</b> <span class="t te">E</span> <span class="src">xlsx</span></div>
+<div class="card">
+  <h4>Moat &amp; TAM</h4>
+  <p><b>Moat <span class="t to">O</span>:</b> real but narrow — the preform + vertical integration is a legitimate intangible/scale edge at the high end; it does not extend to commodity cable.</p>
+  <p><b>TAM <span class="t tf">F</span> (flagged):</b> management cites "$762 bn" hyperscaler capex and 5G/FTTx build-outs — <b>company-framed industry claims</b>; treat as directional marketing, not underwriting inputs. <span class="src">Transcript · Mar 26</span></p>
+</div>
+<div class="conf"><b>Confidence: MEDIUM-HIGH.</b></div>`},
+
+{n:"04",short:"Peers",title:"Peer comparison",budget:"table + 300 w",body:`
+<p class="lead">Trailing, sourced. Forward multiples NOT AVAILABLE (no sourced consensus supplied).</p>
+<div class="tbl-scroll"><table class="mono-t">
+<tr><th>Metric</th><th>STL</th><th>HFCL</th><th>Finolex</th><th>Polycab</th><th>KEI</th></tr>
+<tr><td>Mkt cap (₹cr)</td><td class="hi">~28,000</td><td>~30,130</td><td>~17,616</td><td>1,26,223</td><td class="nd" style="font-size:10px">n/a</td></tr>
+<tr><td>FY26 rev (₹cr)</td><td class="hi">4,745</td><td>4,949</td><td>6,321</td><td>28,884</td><td>—</td></tr>
+<tr><td>EBITDA margin</td><td class="hi">12–13%</td><td>16.7%</td><td>~9.3%</td><td>13.1%</td><td>—</td></tr>
+<tr><td>FY26 PAT (₹cr)</td><td class="hi">56</td><td>329</td><td>714</td><td>~3,000</td><td>—</td></tr>
+<tr><td>ROCE</td><td class="hi">8.1%</td><td>~7%</td><td>17.9%</td><td>high</td><td>16.8%*</td></tr>
+<tr><td>P/E (TTM)</td><td class="hi">~116×</td><td>~90×</td><td>~18×</td><td>~48×</td><td>~45×</td></tr>
+<tr><td>P/B</td><td class="hi">~7.5×</td><td>n/a</td><td>~2.2×</td><td>~11×</td><td>~7.1×</td></tr>
+<tr><td>Order book (₹cr)</td><td class="hi">18,618</td><td>26,665</td><td>—</td><td>large</td><td>—</td></tr>
+</table></div>
+<p style="font-size:11px;color:var(--faint);margin-bottom:14px">*ROE. Sources: HFCL/Finolex/Polycab/KEI results &amp; peer notes, Apr–Jul 2026; STL order book from Q1 FY27 slides (Investing.com, 24 Jul 26).</p>
+<div class="callout">On almost every hard financial metric — margin, PAT, ROCE, capital efficiency — <b>STL is the weakest of the fibre peers</b>, yet trades at the richest or near-richest P/E. Closest read-across is HFCL: near-identical size and thematic, but <b>HFCL earns ~6× STL's PAT at a lower P/E.</b> The premium is the preform story + momentum, not the fundamentals. <span class="t to">O</span></div>
+<div class="conf"><b>Confidence: MEDIUM</b> (peers sourced; some cells unavailable).</div>`},
+
+{n:"05",short:"Revenue mix",title:"Revenue concentration & product economics",budget:"300 w",body:`
+<p class="lead">Where the money and the margin actually come from — and which way the mix is moving.</p>
+<div class="grid2">
+  <div class="card">
+    <h4>Segment mix <span class="t tf">F</span></h4>
+    <p>Enterprise &amp; Data Centre = <b>19% of FY26 revenue</b> (down from 21% FY25), targeted to <b>30% in FY27</b>. STL Digital ₹284 cr. Precise value split <span class="nd">NOT AVAILABLE</span> (xlsx Segments sheet formula-only). <span class="src">Transcript · Mar 26</span></p>
+  </div>
+  <div class="card">
+    <h4>Margin ladder <span class="t tf">F</span></h4>
+    <p>Highest: optical connectivity (~30%) and specialty fibre (HCF/MCF/G.654.E). Lowest: commodity cable (~20%) and legacy copper (being run down).</p>
+  </div>
+</div>
+<div class="callout">The entire bull thesis rests on E&amp;DC going 19%→30%. But <b>attach rate actually fell to 15% in FY26 from 22% in FY25</b>, blamed on "project timing." <b>The one metric that would confirm the mix shift is moving the wrong way.</b> <span class="t tf">F</span> <span class="src">Guidance Report · Jul 26</span></div>
+<div class="conf"><b>Confidence: MEDIUM-LOW</b> (segment values not in file).</div>`},
+
+{n:"06",short:"Growth",title:"Growth engine",budget:"500 w",body:`
+<p class="lead">Order-book + cyclical-commodity frame. Separate the real from the aspirational, then check the conversion rate.</p>
+<div class="grid2">
+  <div class="card">
+    <h4 style="color:var(--green)">Real — contracted / in execution <span class="t tf">F</span></h4>
+    <ul class="clean">
+      <li><b>Order book ₹18,618 cr</b> (Q1 FY27, up from ₹7,309 cr at FY26 — the jump is the PAL landing). <span class="src">STL slides · 24 Jul 26</span></li>
+      <li><b>Q1 FY27 revenue ₹1,910 cr, +87% YoY</b> — real, reported momentum.</li>
+      <li>US mix 39% (from 25%); QIP ₹1,500 cr raised Jun–Jul 26.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4 style="color:var(--amber)">Aspirational — announced <span class="t tf">F</span> (flagged)</h4>
+    <ul class="clean">
+      <li><b>$1.11 bn hyperscaler PAL</b> — genuine &amp; STL's own <span class="src">BSE filing · 22 May 26</span> but a <b>Product Award Letter</b>: priced at "prevailing selling prices", allocated year-by-year, risk-shared, capped. <b>A ceiling, not committed revenue.</b></li>
+      <li><b>BharatNet III (J&amp;K)</b> order sits with the <b>demerged STL Networks/Invenia</b>; STL only supplies cable arm's-length. <b>Do not credit to STL at face value.</b></li>
+    </ul>
+  </div>
+</div>
+<div class="callout">Historical conversion rate — the number that tells you how to read the above: of concrete multi-quarter promises since FY22, management <b>delivered 3, missed 6, partially delivered 3</b>; the 5G/RAN portfolio was abandoned entirely. On this base rate, today's announcements deserve heavy discounting. <span class="t tf">F</span> <span class="src">Guidance Report · Jul 26</span></div>
+<div class="conf"><b>Confidence: MEDIUM.</b></div>`},
+
+{n:"07",short:"Financials",title:"Financial performance & unit economics",budget:"600 w",body:`
+<p class="lead">Ten-year spine. FY24 onward is post-demerger continuing ops — do not read growth across the FY24 break.</p>
+<div class="callout pos"><b>Newest data — Q1 FY27 (Jun-26) inflection <span class="t tf">F</span>:</b> revenue ₹1,910cr (+87% YoY), EBITDA ₹385cr at a <b>20% margin</b> (vs 14% in Q4 FY26 and ~12% for FY26), PAT ₹197cr, EPS ₹4.04. <span class="src">TradingView 1W · Jul 26 / STL Q1 FY27</span> This is the sharpest evidence yet of the mix-shift turning — <b>but it is one quarter</b>, and the kill-criterion is 18%+ for three in a row. Proof point 1 of 3.</div>
+<div class="chart-box"><h4>Quarterly revenue (bars, ₹cr) vs EBITDA margin (line, %) — the recent inflection</h4><div class="chart-holder"><canvas id="c_qtr"></canvas></div><div class="chart-note">EBITDA margin climbed <b>13%→20%</b> across five quarters, Q1 FY27 the standout — the clearest sign yet of the mix shift, but a single quarter against a cyclical record.</div></div>
+<div class="chart-box"><h4>Revenue (bars, ₹cr) vs operating margin (line, %) — the 10-year cyclicality</h4><div class="chart-holder"><canvas id="c_rev"></canvas></div><div class="chart-note">Revenue peaked at <b>₹6,925cr</b> (FY23) pre-demerger; the FY24 step-down is the demerger, not decline. OPM swung <b>24%→10%→12%</b> — a cyclical signature, not a compounding one.</div></div>
+<div class="grid2">
+  <div class="chart-box"><h4>ROCE vs ROE (%) — six years below cost of capital</h4><div class="chart-holder"><canvas id="c_ret"></canvas></div><div class="chart-note">ROCE (amber) and ROE (blue) have sat below the <b>~11.5%</b> cost-of-capital line (grey dashed) for <b>six straight years</b> — value-neutral at best, even in the FY26 recovery.</div></div>
+  <div class="chart-box"><h4>Capital employed (bars) vs EBIT (line) — capital in, no return out</h4><div class="chart-holder"><canvas id="c_roiic"></canvas></div><div class="chart-note">Capital employed rose <b>~₹3,657cr</b> FY18→FY23 while EBIT (amber) barely moved — the <b>~0.6%</b> return on incremental capital that fails the compounding test.</div></div>
+</div>
+<div class="callout"><b>Return on incremental capital — the compounding test <span class="t te">E</span>:</b> FY18→FY23 (clean pre-demerger window) capital employed rose <b>₹3,657 cr</b> while EBIT rose just <b>₹21 cr → RoIIC ≈ 0.6%</b> (FY21→FY23 was −8.2%). FY23→FY26 spans the demerger → invalid. <b>A business returning &lt;1% on incremental capital is not a compounder, whatever the order book says.</b></div>
+<div class="card">
+  <h4>Margin bridge &amp; working capital <span class="t to">O</span></h4>
+  <p>The FY18→FY22 collapse (24%→12% OPM) is the OFC price crash — a <i>cycle</i>. The recovery now extends to <b>Q1 FY27 at a 20% margin</b> — the strongest quarter in the series — but management does not disaggregate cycle from mix, and <b>a single 20% quarter against a ten-year record of 10–24% cyclical margins is not yet proof of a structural re-rating.</b> That distinction is the whole valuation question (§16).</p>
+  <p>Working capital <span class="t te">E</span>: receivable days 82 (FY26) vs 143 (FY24) — improved as the long-receivable deployment business was demerged out. Payables <span class="nd">NOT DISCLOSED</span>.</p>
+</div>
+<div class="conf"><b>Confidence: HIGH</b> on trailing math; the forward call is the uncertainty.</div>`},
+
+{n:"08",short:"Forensic",title:"Forensic & accounting quality",budget:"500 w",body:`
+<p class="lead">Every check run; a clean result is also information. Uploaded forensic scores 5.6/10 — I read the findings as more serious than that headline.</p>
+<div class="chart-box"><h4>Cumulative cash conversion, FY18–FY26 (₹cr)</h4><div class="chart-holder"><canvas id="c_cash"></canvas></div><div class="chart-note">ΣCFO <b>₹5,167cr</b> exceeds ΣPAT <b>₹1,947cr</b> (CFO/PAT 2.65) — cash is real; the issue is thin profits, not fabrication. CFO/EBITDA 0.76.</div></div>
+<div class="callout pos">Cash <b>is</b> real — ΣCFO/ΣPAT = 2.65 (&gt;0.7 ✓), ΣCFO/ΣEBITDA = 0.76 (&gt;0.6 ✓). But do not misread high CFO/PAT as quality — it's high because PAT is depressed by depreciation &amp; interest. <span class="t te">E</span></div>
+<div class="card">
+  <h4>Silent restatements — the check that fired <span class="t tf">F</span></h4>
+  <p>On the FY25 demerger, <b>₹1,164 cr was debited to retained earnings</b>, and <b>FY24 standalone revenue was restated ₹5,990 cr → ₹2,661 cr</b>. Consolidated revenue stepped ₹6,925 cr → ₹4,083 cr (−41%) — the demerger, not organic decline. <b>Any return series read across FY24 is invalid unless like-for-like.</b> <span class="src">Forensic · Jul 26</span></p>
+</div>
+<div class="card">
+  <h4>Governance &amp; balance-sheet flags <span class="t tf">F</span></h4>
+  <ul class="clean">
+    <li><b>Leverage understated:</b> net debt ₹1,817 cr excludes ₹167 cr interest-bearing advances (~₹1,984 cr true). Materials imply "1.3×" net-debt/EBITDA; honest figure is <b>~2.9–3.5×</b> — a 2× understatement in investor framing.</li>
+    <li><b>₹431 cr short-term funds used for long-term purposes</b> (FY24, auditor-flagged); a subsidiary breached covenants (FY23).</li>
+    <li><b>Audit-trail &amp; backup gaps flagged four consecutive years</b>; unmodified opinion regardless.</li>
+    <li><b>Interim CFO</b> (Ajay Jhanjhari) amid demerger + ₹2,000 cr fundraise.</li>
+    <li>Ultimate holding = <b>Vedanta Inc., Bahamas</b> (Anil Agarwal trust); no group financials; 22 subs (₹881 cr) unaudited; 200+ entities unconsolidated.</li>
+    <li>Unresolved <b>$101 m US jury verdict</b> (Prysmian).</li>
+  </ul>
+</div>
+<div class="conf"><b>Confidence: HIGH</b> (findings from filings via the forensic report, corroborated).</div>`},
+
+{n:"09",short:"Mgmt",title:"Management & promoter track record",budget:"400 w",body:`
+<p class="lead">Backgrounds, incentives, and what independent capital thinks of them.</p>
+<div class="card">
+  <h4>Section 197 pay breaches — three years running <span class="t tf">F</span></h4>
+  <p>Managerial remuneration exceeded statutory limits by <b>₹3 cr (FY26), ₹6 cr (FY25), ₹14 cr (FY24)</b>, each needing shareholder ratification. <span class="src">Forensic · Jul 26</span></p>
+</div>
+<div class="callout">At the FY24 AGM, public institutions voted <b>57% against</b> Pravin Agarwal's pay and 39% against Ankit Agarwal's; at FY23 AGM, <b>88% of public institutions voted against</b> appointing Ankit Agarwal as MD. <b>When 88% of independent institutional capital votes against your MD, that is the market telling you something.</b> <span class="t tf">F</span></div>
+<div class="card">
+  <h4>Holding, pledge, succession</h4>
+  <ul class="clean">
+    <li>Promoter (Twin Star / Vedanta) ~42–43%, down 2.15% QoQ — check QIP dilution vs sell-down. → 47.75% fully diluted on warrants. <span class="src">Screener · May 26</span></li>
+    <li>Promoter <b>pledge %:</b> <span class="nd">NOT DISCLOSED</span> — check shareholding pattern before acting.</li>
+    <li>Independent SEBI/SAT/court search <span class="nd">NOT PERFORMED HERE</span> — only items in the forensic report reviewed.</li>
+    <li>Finance leadership currently <b>interim</b>.</li>
+  </ul>
+</div>
+<div class="conf"><b>Confidence: MEDIUM-HIGH</b> on record; gaps on pledge &amp; independent regulatory search.</div>`},
+
+{n:"10",short:"Capital",title:"Capital allocation",budget:"400 w",body:`
+<p class="lead">Scored on outcomes, not intent.</p>
+<div class="grid2">
+  <div class="card">
+    <div class="metric-lbl">HISTORICAL CAPEX OUTCOME <span class="t te">E</span></div>
+    <div class="big red">₹3,657 cr → ₹21 cr</div>
+    <p style="margin-top:8px">deployed FY18–FY23 for ~₹21 cr incremental EBIT. <b>On outcomes, historical capital allocation destroyed value.</b></p>
+  </div>
+  <div class="card">
+    <div class="metric-lbl">DELEVERAGING <span class="t tf">F</span></div>
+    <div class="big green">₹3,834→₹1,827 cr</div>
+    <p style="margin-top:8px">borrowings cut FY23→FY26, plus QIP ₹1,500 cr. <b>The one genuinely good recent move</b> — though partly forced (covenant breach) and partly dilutive.</p>
+  </div>
+</div>
+<div class="card">
+  <h4>Empire-building test <span class="t to">O</span></h4>
+  <p>The demerger actually <i>simplified</i> the group (deployment business out) — a rare de-conglomeration, positive. But the Bahamas-trust superstructure and 200+ entities keep the group opaque. Planned capex ₹500 cr (upgrades + DC) — watch stated asset turn vs the existing base. <span class="src">Transcript · Mar 26</span></p>
+</div>
+<div class="conf"><b>Confidence: MEDIUM.</b></div>`},
+
+{n:"11",short:"Concall",title:"Concall forensics",budget:"500 w",body:`
+<p class="lead">Where the edge is. What management repeats, dodges, and quietly stops saying.</p>
+<div class="card">
+  <h4>Signals <span class="t to">O</span></h4>
+  <ul class="clean">
+    <li><b>Recurring / unresolved:</b> margin durability, attach-rate direction, and the net-debt definition — the ₹1,128 cr (Mar 26 notes) vs ₹1,817 cr (Jul 26 forensic) gap is a number that shifts with who's presenting it.</li>
+    <li><b>What management is NOT saying:</b> no clean cycle-vs-mix disaggregation of the margin recovery; no committed PO schedule behind the PAL; attach-rate decline waved off as "timing".</li>
+    <li><b>Language:</b> heavy "expects / targets / anticipates / directionally"; the credible bits are the dated Q1/Q2 FY27 execution values.</li>
+  </ul>
+</div>
+<div class="callout"><b>Would I hand this team my money?</b> Not at this price and not with this governance record. The operating turn is real; the stewardship and candour are not yet trustworthy. <span class="t to">O</span></div>
+<div class="conf"><b>Confidence: MEDIUM</b> (working from structured notes, not full transcript).</div>`},
+
+{n:"12",short:"Walk-talk",title:"Guidance & walk-the-talk audit",budget:"table + 300 w",body:`
+<p class="lead">19 guidance items, FY22→FY26. Three-plus consecutive misses means no benefit of the doubt on FY27.</p>
+<div class="chart-box"><h4>Guidance scorecard (19 items)</h4><div class="chart-holder"><canvas id="c_guid"></canvas></div><div class="chart-note">Missed (<b>6</b>) outnumber Delivered (<b>3</b>) two-to-one, with 3 more only partial — a walk-the-talk record that earns no benefit of the doubt on FY27 guidance.</div></div>
+<div class="pill-row">
+  <span class="chip hit">Delivered · 3</span>
+  <span class="chip miss">Missed · 6</span>
+  <span class="chip part">Partial · 3</span>
+  <span class="chip">On track · 4</span>
+  <span class="chip">Pending · 3</span>
+</div>
+<div class="tbl-scroll"><table class="mono-t">
+<tr><th>Verdict</th><th>Examples</th></tr>
+<tr><td style="color:var(--red)">Missed ×6</td><td>Rev growth FY24 (guided +10–12%, actual −41%); net-debt/EBITDA &lt;2.5× (actual ~4.7×); optical 20% margin FY24 (16.2%); attach rate 20% (15%); 5G/RAN — abandoned</td></tr>
+<tr><td style="color:var(--amber)">Partial ×3</td><td>Demerger 3–4 qtrs late; digital breakeven 3 qtrs late; US facility 2 qtrs late</td></tr>
+<tr><td style="color:var(--green)">Delivered ×3</td><td>Net-debt reduction FY24; rev growth FY23; EBITDA normalise H2 FY23</td></tr>
+</table></div>
+<div class="callout">The pattern: management <b>misses roughly twice as often as it delivers</b>, and serially moves goalposts (optical 20% margin FY24→FY27; attach rate 20%→40%→actual 15%). <b>Current 20%-margin-by-Q4-FY27 guidance should be underwritten at a discount to its own history.</b> <span class="t tf">F</span> <span class="src">Guidance Report · Jul 26</span></div>
+<div class="conf"><b>Confidence: HIGH</b> (structured guidance file).</div>`},
+
+{n:"13",short:"Ownership",title:"Ownership & liquidity",budget:"300 w",body:`
+<p class="lead">Who owns it, who's adding, and can you actually get out.</p>
+<div class="grid2">
+  <div class="card">
+    <h4>Holders <span class="t tf">F</span></h4>
+    <ul class="clean">
+      <li>Promoter ~42–43% (→47.75% diluted). <span class="src">Screener · May 26</span></li>
+      <li>MF holding 11.33%. <span class="src">Kotak · 24 Jul 26</span></li>
+      <li>FII/DII quarterly split <span class="nd">NOT AVAILABLE</span> (file sheet formula-only).</li>
+      <li>Bulk/block deals <span class="nd">NOT AVAILABLE</span>.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>QIP &amp; liquidity <span class="t tf">F/E</span></h4>
+    <ul class="clean">
+      <li>QIP Jun 26: 2,57,28,500 shares at ₹583.01 — <b>subscribers roughly flat-to-underwater at ₹549.</b></li>
+      <li>Traded value low hundreds of ₹cr/day on a ₹28,000 cr cap — <b>liquidity is not the constraint; volatility (~11%/wk) is.</b></li>
+    </ul>
+  </div>
+</div>
+<div class="conf"><b>Confidence: MEDIUM.</b></div>`},
+
+{n:"14",short:"Variant",title:"Variant perception",budget:"400 w",body:`
+<p class="lead">The reason the memo exists — what the market believes vs what the evidence supports.</p>
+<div class="grid2">
+  <div class="card">
+    <h4 style="color:var(--amber)">What the market believes</h4>
+    <p>An AI-data-centre infrastructure compounder in the making: preform moat + $1.11 bn award + tripling order book + margin inflection = structural re-rating. Stock up <b>~350% in a year</b> on this.</p>
+  </div>
+  <div class="card">
+    <h4 style="color:var(--blue)">What the evidence supports <span class="t to">O</span></h4>
+    <p>A cyclical fibre manufacturer at the early-favourable phase of an OFC up-cycle: narrow moat, sub-cost-of-capital ten-year returns, poor incremental economics, serial guidance misses, material governance opacity — recovering, but from a low base and <b>at least half for cyclical reasons.</b></p>
+  </div>
+</div>
+<div class="callout">The gap = the chance to be short the narrative, or to wait. Consensus models 18–20% structural margins and full PAL conversion; the variant view is that margins mean-revert and the PAL is a risk-shared ceiling — in which case 116× TTM is untenable. <b>Next checkpoint: Q2 FY27 result (~Oct 2026).</b></div>
+<div class="conf"><b>Confidence: MEDIUM</b> (the judgement section).</div>`},
+
+{n:"15",short:"Scenarios",title:"Scenarios",budget:"table + 400 w",body:`
+<p class="lead">Built from drivers, not a picked growth rate. Exit FY29; shares 51.4 cr.</p>
+<div class="chart-box"><h4>Target price by scenario (₹) vs CMP ₹549 &amp; PW value ₹292</h4><div class="chart-holder"><canvas id="c_scen"></canvas></div><div class="chart-note">Probability-weighted target <b>₹292</b> sits below CMP <b>₹549</b> (blue dashed) — the bear and base cases dominate the expected value.</div></div>
+<div class="tbl-scroll"><table class="mono-t">
+<tr><th></th><th>Bear</th><th>Base</th><th>Bull</th></tr>
+<tr><td>Probability <span class="t to">O</span></td><td>35%</td><td class="hi">45%</td><td>20%</td></tr>
+<tr><td>Driver</td><td>cycle rolls over, margin ~10%</td><td>book executes, margin ~14.5%</td><td>DC mix 30%+, margin ~19%</td></tr>
+<tr><td>Revenue FY29 (₹cr)</td><td>~5,000</td><td>~7,000</td><td>~9,500</td></tr>
+<tr><td>EPS (₹)</td><td>~1.8</td><td>~6.4</td><td>~14.6</td></tr>
+<tr><td>Exit P/E + why</td><td>25× de-rated</td><td>40× cycle-aware</td><td>55× compounder</td></tr>
+<tr><td>Target (₹)</td><td style="color:var(--red)">~45</td><td class="hi">~256</td><td style="color:var(--green)">~803</td></tr>
+</table></div>
+<div class="callout"><b>PW expected value ≈ ₹292</b> (0.35·45 + 0.45·256 + 0.20·803) vs CMP ~₹549 → ~47% downside. Bear case as a short: OFC prices soften as China + domestic capacity floods the DC theme; risk-shared PAL delivers volume at capped margins; a governance event de-rates from 116× toward 25× — a &gt;70% drawdown that rhymes with FY19–FY22.</div>
+<div class="conf"><b>Confidence: MEDIUM</b> (explicitly judgemental; EPS math shown).</div>`},
+
+{n:"16",short:"Valuation",title:"Valuation",budget:"400 w",body:`
+<p class="lead">At CMP ~₹549, shares 51.4 cr, net debt ₹1,817 cr → EV ~₹30,030 cr.</p>
+<div class="tbl-scroll"><table class="mono-t">
+<tr><th>Multiple</th><th>STL now</th><th>Comment</th></tr>
+<tr><td>P/E (TTM PAT ₹243 cr)</td><td class="hi">~116×</td><td>vs HFCL ~90×, Finolex ~18×, Polycab ~48×</td></tr>
+<tr><td>P/E (FY26 PAT ₹56 cr)</td><td class="hi">~504×</td><td>the "return to profit" is off a tiny base</td></tr>
+<tr><td>EV/EBITDA (TTM ₹829 cr)</td><td class="hi">~36×</td><td>vs Polycab ~32× (larger, higher quality)</td></tr>
+<tr><td>P/S (TTM ₹5,642 cr)</td><td>~5.0×</td><td>rich for a 12–15% margin manufacturer</td></tr>
+<tr><td>P/B (post-QIP)</td><td>~7.5×</td><td>for an 8% ROCE / 2.5% ROE business</td></tr>
+</table></div>
+<p style="font-size:11px;color:var(--faint);margin:-6px 0 14px">Trailing/TTM basis already includes Q1 FY27.</p>
+<div class="callout"><b>Trailing vs Q1 FY27 run-rate — the reconciliation that matters <span class="t te">E</span>:</b> the memo's ~36× EV/EBITDA uses trailing EBITDA ₹829cr; TradingView shows <b>18.3×</b> because it runs off a forward/run-rate EBITDA. Annualising Q1 FY27 (EBITDA ₹385cr × 4 ≈ ₹1,540cr; EPS ₹4.04 × 4 ≈ ₹16.2) gives, at CMP ~₹564: <b>EV/EBITDA ~20×, P/E ~35×, P/S ~3.8×</b>. <span class="src">TradingView 1W · Jul 26</span></div>
+<div class="tbl-scroll"><table class="mono-t">
+<tr><th>Multiple</th><th>Trailing (TTM)</th><th>Q1 FY27 run-rate</th><th>Read</th></tr>
+<tr><td>EV/EBITDA</td><td class="hi">~36×</td><td class="hi">~20× <span style="color:var(--faint)">(TV 18.3)</span></td><td>demanding, not absurd — IF margin holds</td></tr>
+<tr><td>P/E</td><td class="hi">~116×</td><td class="hi">~35×</td><td>TV trailing 113.3</td></tr>
+<tr><td>P/S</td><td>~5.0×</td><td>~3.8×</td><td>run-rate revenue ~₹7,640cr</td></tr>
+</table></div>
+<div class="callout"><b>What's priced in — reframed <span class="t te">O</span>:</b> the market is plainly valuing STL on the <b>run-rate, not the trailing base</b> — at ~20× EV/EBITDA it is pricing the 20% margin as the new normal. So the entire valuation collapses to one question: <b>is 20% the floor or a cycle peak?</b> If it holds three quarters (the kill-criterion), the base case re-weights up and ₹564 is defensible-to-cheap; if Q1 was a peak, trailing 36×/116× is the right lens and the downside in §15 stands. <b>One quarter does not yet re-weight the scenarios</b> — but it is proof point 1 of 3, and the next print (Q2 FY27, ~Oct 26) is the swing factor.</div>
+<div class="card"><p>5Y multiple band precision <span class="nd">NOT AVAILABLE</span> (xlsx Valuation sheet formula-only). Context: 52-week range ₹84.6–679.9 — the stock has ~8×'d off its low and sits in the top quartile of its own recent history. <span class="t te">E</span> DCF: insufficient inputs for a defensible model — no number manufactured.</p></div>
+<div class="conf"><b>Confidence: MEDIUM-HIGH</b> on multiple math; band precision limited by file.</div>`},
+
+{n:"17",short:"Risks",title:"Risks & pre-mortem",budget:"400 w",body:`
+<p class="lead">18 months out, the stock is down 50%+. What happened? <span class="t to">O</span></p>
+<div class="grid2">
+  <div class="card"><h4>1 · The cycle turned</h4><p>OFC prices soften; margins revert to ~10–11%; the "structural" story is exposed as cyclical. <b>Indicator:</b> two quarters of sequential EBITDA-margin decline + falling global fibre prices.</p></div>
+  <div class="card"><h4>2 · The PAL disappoints</h4><p>Risk-shared, capped, "prevailing-price" award converts to low-margin volume or slips. <b>Indicator:</b> no dated POs by Q4 FY27.</p></div>
+</div>
+<div class="card"><h4>3 · A governance event</h4><p>Audit qualification, adverse $101 m verdict, promoter pledge/sell-down, or the interim-CFO situation turning into an exit. <b>Indicator:</b> any §8/§9 item crystallising in filings.</p></div>
+<div class="tbl-scroll"><table class="mono-t">
+<tr><th>Risk</th><th>Prob</th><th>Impact</th></tr>
+<tr><td>OFC cyclical margin reversion</td><td style="color:var(--red)">H</td><td style="color:var(--red)">H</td></tr>
+<tr><td>Valuation de-rating</td><td style="color:var(--red)">H</td><td style="color:var(--red)">H</td></tr>
+<tr><td>PAL under-conversion</td><td>M</td><td style="color:var(--red)">H</td></tr>
+<tr><td>Governance / audit / verdict</td><td>M</td><td style="color:var(--red)">H</td></tr>
+<tr><td>Input cost (germanium/helium)</td><td>M</td><td>M</td></tr>
+</table></div>
+<div class="conf"><b>Confidence: MEDIUM-HIGH.</b> Not softened: top-quartile valuation + cyclical core + flawed governance is a high-risk setup regardless of tailwind.</div>`},
+
+{n:"18",short:"Technicals",title:"Technicals",budget:"conditional · now populated",body:`
+<p class="lead">Populated from the user's TradingView <b>weekly</b> chart <span class="src">TradingView 1W · Jul 26</span>. The technical verdict is <b>separate from and subordinate to</b> the fundamental verdict (§01: Watch with hawk's eye).</p>
+<div class="grid2">
+  <div class="card">
+    <h4>Trend &amp; stage <span class="t tf">F</span></h4>
+    <ul class="clean">
+      <li>Weekly <b>Stage 2 (advancing)</b> — transitioned <b>S4 → S2 "Mature"</b>, 26 weeks duration.</li>
+      <li>MA structure <b>bullishly stacked</b>: price 564.15 &gt; fast 527.09 &gt; medium 440.64 &gt; slow 329.60.</li>
+      <li>Price above all rising MAs — a healthy cushion (~41.6%) above the slow EMA.</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Momentum, RS &amp; participation <span class="t tf">F</span></h4>
+    <ul class="clean">
+      <li><b>Relative strength: Strong ↑</b> — +35.75% vs its RS MA, significantly outperforming CNX500.</li>
+      <li class="flag"><b>Momentum: Weak ↓↓</b> — price falling at an accelerating pace off the highs.</li>
+      <li class="flag"><b>Volume drying up</b> — avg ₹ volume very low, "lack of participation" (RVOL 172% only on the marked bar).</li>
+      <li>Beta <b>1.96</b> — high volatility; not in a pullback / "cheat-entry" zone.</li>
+    </ul>
+  </div>
+</div>
+<div class="grid2">
+  <div class="chart-box"><h4>How far each EMA sits below price (%)</h4><div class="chart-holder"><canvas id="c_ema"></canvas></div>
+    <div class="chart-note">Fast EMA <b>₹527</b> · Medium <b>₹441</b> · Slow <b>₹330</b>. Price is above all three (bullish alignment), but sitting <b>~42%</b> above the slow EMA marks the move as <b>extended</b> — a mean-reversion toward the slow EMA is a deep drawdown, and the wide gaps are the signature of the post-2025 parabolic run.</div>
+  </div>
+  <div class="chart-box"><h4>Key levels ladder (₹) — supports below, resistances above CMP</h4><div class="chart-holder"><canvas id="c_lvl"></canvas></div>
+    <div class="chart-note">CMP <b>₹564</b>. Resistances: R1 <b>₹640</b> (+13%, swing high) · R2 <b>₹680</b> (+20%, 52-wk high) — above that it's <b>blue-sky</b>, no overhead supply. Supports: S1 <b>₹527</b> (−7%, fast EMA) · S2 <b>₹441</b> (−22%) · S3 <b>₹330</b> (−41%) — <b>a break of S1 opens ~15–41% of air</b> before the next real floor.</div>
+  </div>
+</div>
+<div class="tbl-scroll"><table class="mono-t">
+<tr><th>Level</th><th>Price (₹)</th><th>Dist from CMP</th><th>Rationale <span class="t te">E</span></th></tr>
+<tr><td style="color:var(--red)">R2</td><td>~680</td><td>+20%</td><td>52-week high (679.9) — overhead supply</td></tr>
+<tr><td style="color:var(--red)">R1</td><td>~640</td><td>+13%</td><td>recent weekly swing high</td></tr>
+<tr><td class="hi">CMP</td><td class="hi">564.15</td><td>—</td><td>last weekly close</td></tr>
+<tr><td style="color:var(--green)">S1</td><td>527</td><td>−6.6%</td><td>fast EMA (yellow) — first support</td></tr>
+<tr><td style="color:var(--green)">S2</td><td>441</td><td>−22%</td><td>medium EMA (blue) — Stage-2 trend support</td></tr>
+<tr><td style="color:var(--green)">S3</td><td>330</td><td>−41%</td><td>slow EMA (red) — major trend / stage boundary</td></tr>
+</table></div>
+<div class="card">
+  <h4>Risk-reward &amp; read <span class="t te">E</span></h4>
+  <p>From CMP, nearest support S1 (−6.6%) vs nearest resistance R1 (+13.5%) ≈ a ~1:2 setup. <b>But the downside is asymmetric on a break:</b> lose S1 (527) and the next real support is S2 (441), ~22% lower — the MAs are widely spaced after a parabolic run.</p>
+  <p><span class="nd">RSI NOT AVAILABLE</span> — the supplied chart shows relative strength (RS) and RVOL, not RSI; not fabricated. Daily trend <span class="nd">NOT AVAILABLE</span> — chart is weekly only.</p>
+</div>
+<div class="callout">Technical verdict <span class="t to">O</span>: an <b>extended Stage-2 uptrend pulling back on weak momentum and drying volume.</b> The larger structure is bullish (price above stacked rising MAs, strong RS), but it is <b>not a low-risk entry</b> — cleaner technical entries sit at the 527 or 441 EMAs. Crucially, "weak momentum + fading participation at the highs after a ~350% run" <b>corroborates the fundamental read</b> that this is a momentum-driven, priced-for-perfection move — reinforcing a <b>watch-and-track</b> stance rather than a chase, with the 527 / 441 EMAs the levels to act on.</div>
+<div class="conf"><b>Confidence: MEDIUM</b> — read from a single weekly snapshot; no full OHLCV series, so exact oscillator levels and daily structure are unavailable.</div>`},
+
+{n:"19",short:"Sizing",title:"Position sizing",budget:"150 w",body:`
+<p class="lead">Conviction + liquidity + probability-weighted downside → a size. High conviction ≠ large position.</p>
+<div class="grid2">
+  <div class="card">
+    <div class="metric-lbl">STANCE AT CMP</div>
+    <div class="big amber">WATCH</div>
+    <p style="margin-top:8px">Tracking position only — no full buy at CMP; risk/reward is still asymmetric to the downside (~47% PW). Scale in as proof points land.</p>
+  </div>
+  <div class="card">
+    <div class="metric-lbl">THEME-EXPOSURE CAP</div>
+    <div class="big amber">≤ 1%</div>
+    <p style="margin-top:8px">A tracking position only, sized to keep the name on radar — adds only as the kill-criteria flip positive.</p>
+  </div>
+</div>
+<div class="callout"><b>Do not average into a cyclical at 116× earnings on a narrative.</b> If already holding from lower levels, the ₹84→₹549 move has front-run years of fundamentals — trimming into strength is consistent with the analysis, independent of the theme's long-term merit. <span class="t to">O</span></div>
+<div class="conf"><b>Confidence: MEDIUM</b> (sizing follows directly from scenarios &amp; valuation).</div>`}
+];
+
+/* ---------------- render nav + panels ---------------- */
+const navTop=document.getElementById('tabsTop'),navBot=document.getElementById('tabsBot'),main=document.getElementById('main');
+TABS.forEach((t,i)=>{
+  const bt=document.createElement('button');
+  bt.innerHTML=`<span class="n">${t.n}</span>${t.short}`;
+  bt.onclick=()=>show(i); navTop.appendChild(bt);
+  const bb=document.createElement('button');
+  bb.innerHTML=`<span class="bn">${t.n}</span><span class="bl">${t.short}</span>`;
+  bb.onclick=()=>show(i); navBot.appendChild(bb);
+  const p=document.createElement('section');
+  p.className='panel'; p.id='p'+i;
+  p.innerHTML=`<div class="sec-h"><span class="sec-n">${t.n}</span><span class="sec-t">${t.title}</span><span class="sec-budget">budget ${t.budget}</span></div>${t.body}`;
+  main.appendChild(p);
+});
+
+let cur=-1, drawn={};
+function show(i){
+  if(i===cur)return; cur=i;
+  document.querySelectorAll('.panel').forEach((p,k)=>p.classList.toggle('on',k===i));
+  navTop.querySelectorAll('button').forEach((b,k)=>b.classList.toggle('on',k===i));
+  navBot.querySelectorAll('button').forEach((b,k)=>b.classList.toggle('on',k===i));
+  navBot.children[i]&&navBot.children[i].scrollIntoView({inline:'center',behavior:'smooth',block:'nearest'});
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(!drawn[i]){drawCharts(i);drawn[i]=true;}
+}
+
+/* ---------------- charts ---------------- */
+const AM='#f0a500',RD='#ff5964',GR='#37d39b',BL='#5aa9ff',MU='#8a94a6',GRID='rgba(23,35,59,.7)';
+Chart.defaults.font.family="'JetBrains Mono', monospace";
+Chart.defaults.color=MU; Chart.defaults.font.size=10.5;
+const axis=(pct)=>({grid:{color:GRID},ticks:{callback:pct?(v=>v+'%'):undefined}});
+const baseOpts=(extra={})=>Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{boxWidth:12,boxHeight:12,usePointStyle:true}}}},extra);
+
+const valueLabels={
+  id:'valueLabels',
+  afterDatasetsDraw(chart,args,opts){
+    const ctx=chart.ctx, horiz=chart.options.indexAxis==='y';
+    chart.data.datasets.forEach((ds,di)=>{
+      const type=ds.type||chart.config.type;
+      if(type==='doughnut'||type==='pie')return;
+      if(type==='line'&&(!opts.lines||ds.pointRadius===0))return;
+      const meta=chart.getDatasetMeta(di);
+      meta.data.forEach((el,i)=>{
+        const v=ds.data[i]; if(v==null)return;
+        const label=opts.fmt?opts.fmt(v,di):String(v);
+        if(label==null)return;
+        ctx.save();
+        ctx.font="700 10.5px 'JetBrains Mono', monospace";
+        if(type==='line'){
+          ctx.fillStyle=ds.borderColor||'#e8edf6';ctx.textAlign='center';ctx.textBaseline='bottom';
+          ctx.fillText(label,el.x,el.y-7);
+        } else if(horiz){
+          ctx.fillStyle='#e8edf6';ctx.textAlign='left';ctx.textBaseline='middle';
+          ctx.fillText(label,el.x+7,el.y);
+        } else {
+          ctx.fillStyle='#e8edf6';ctx.textAlign='center';ctx.textBaseline='bottom';
+          ctx.fillText(label,el.x,el.y-5);
+        }
+        ctx.restore();
+      });
+    });
+  }
+};
+
+function drawCharts(i){
+  const t=TABS[i].n;
+  if(t==="07"){
+    new Chart(c('c_qtr'),{type:'bar',plugins:[valueLabels],data:{labels:["Jun'25","Sep'25","Dec'25","Mar'26","Jun'26"],datasets:[
+      {type:'bar',label:'Revenue (₹cr)',data:[1019,1034,1257,1441,1910],backgroundColor:'rgba(240,165,0,.55)',borderRadius:3,yAxisID:'y'},
+      {type:'line',label:'EBITDA margin %',data:[13,12,10,14,20],borderColor:GR,backgroundColor:GR,tension:.3,yAxisID:'y1',pointRadius:3}
+    ]},options:baseOpts({layout:{padding:{top:18}},plugins:{valueLabels:{lines:true,fmt:(v,di)=>di===1?v+'%':v}},scales:{y:axis(),y1:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%'}},x:{grid:{color:GRID}}}})});
+    new Chart(c('c_rev'),{type:'bar',data:{labels:YRS,datasets:[
+      {type:'bar',label:'Revenue (₹cr)',data:D.rev,backgroundColor:'rgba(240,165,0,.55)',borderRadius:3,yAxisID:'y'},
+      {type:'line',label:'OPM %',data:D.opm,borderColor:RD,backgroundColor:RD,tension:.3,yAxisID:'y1',pointRadius:3}
+    ]},options:baseOpts({scales:{y:axis(),y1:{position:'right',grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%'}},x:{grid:{color:GRID}}}})});
+    new Chart(c('c_ret'),{type:'line',data:{labels:YRS,datasets:[
+      {label:'ROCE %',data:D.roce,borderColor:AM,backgroundColor:AM,tension:.3,pointRadius:3},
+      {label:'ROE %',data:D.roe,borderColor:BL,backgroundColor:BL,tension:.3,pointRadius:3},
+      {label:'~Cost of capital',data:YRS.map(()=>11.5),borderColor:MU,borderDash:[5,5],pointRadius:0}
+    ]},options:baseOpts({scales:{y:axis(true),x:{grid:{color:GRID}}}})});
+    new Chart(c('c_roiic'),{type:'bar',data:{labels:YRS,datasets:[
+      {type:'bar',label:'Capital employed (₹cr)',data:D.ce,backgroundColor:'rgba(90,169,255,.4)',borderRadius:3,yAxisID:'y'},
+      {type:'line',label:'EBIT (₹cr)',data:D.ebit,borderColor:AM,backgroundColor:AM,tension:.3,yAxisID:'y1',pointRadius:3}
+    ]},options:baseOpts({scales:{y:axis(),y1:{position:'right',grid:{drawOnChartArea:false}},x:{grid:{color:GRID}}}})});
+  }
+  if(t==="08"){
+    new Chart(c('c_cash'),{type:'bar',plugins:[valueLabels],data:{labels:['Σ CFO','Σ EBITDA','Σ PAT'],datasets:[
+      {label:'₹cr (FY18–FY26)',data:[5167,6766,1947],backgroundColor:[GR,AM,RD],borderRadius:4}
+    ]},options:baseOpts({layout:{padding:{top:18}},plugins:{legend:{display:false},valueLabels:{fmt:v=>'₹'+v},tooltip:{callbacks:{afterBody:()=>'CFO/PAT 2.65 · CFO/EBITDA 0.76'}}},scales:{y:axis(),x:{grid:{color:GRID}}}})});
+  }
+  if(t==="12"){
+    new Chart(c('c_guid'),{type:'doughnut',data:{labels:['Delivered','Missed','Partial','On track','Pending'],datasets:[
+      {data:[3,6,3,4,3],backgroundColor:[GR,RD,AM,BL,MU],borderColor:'#04080f',borderWidth:3}
+    ]},options:baseOpts({cutout:'62%',plugins:{legend:{position:'right'}}})});
+  }
+  if(t==="15"){
+    new Chart(c('c_scen'),{type:'bar',plugins:[valueLabels],data:{labels:['Bear','Base','Bull'],datasets:[
+      {type:'bar',label:'Target (₹)',data:[45,256,803],backgroundColor:[RD,AM,GR],borderRadius:4},
+      {type:'line',label:'CMP ₹549',data:[549,549,549],borderColor:BL,borderDash:[6,4],pointRadius:0},
+      {type:'line',label:'PW value ₹292',data:[292,292,292],borderColor:'#fff',borderDash:[2,4],pointRadius:0}
+    ]},options:baseOpts({layout:{padding:{top:18}},plugins:{valueLabels:{fmt:(v,di)=>di===0?'₹'+v:null}},scales:{y:axis(),x:{grid:{color:GRID}}}})});
+  }
+  if(t==="18"){
+    new Chart(c('c_ema'),{type:'bar',plugins:[valueLabels],data:{labels:['Fast EMA','Medium EMA','Slow EMA'],datasets:[
+      {label:'Price premium over EMA (%)',data:[6.6,21.9,41.6],backgroundColor:[AM,BL,GR],borderRadius:4}
+    ]},options:baseOpts({layout:{padding:{top:18}},plugins:{legend:{display:false},valueLabels:{fmt:v=>v+'%'}},scales:{y:axis(true),x:{grid:{color:GRID}}}})});
+    new Chart(c('c_lvl'),{type:'bar',plugins:[valueLabels],data:{labels:['S3 slow MA','S2 med MA','S1 fast MA','CMP','R1 swing','R2 52w high'],datasets:[
+      {label:'₹',data:[330,441,527,564,640,680],backgroundColor:[GR,GR,GR,AM,RD,RD],borderRadius:4}
+    ]},options:baseOpts({indexAxis:'y',layout:{padding:{right:38}},plugins:{legend:{display:false},valueLabels:{fmt:v=>'₹'+v}},scales:{x:axis(),y:{grid:{color:GRID}}}})});
+  }
+}
+function c(id){return document.getElementById(id).getContext('2d');}
+
+show(0);
+</script>
+</body>
+</html>
