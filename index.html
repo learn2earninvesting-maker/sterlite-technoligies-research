@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sterlite Technologies — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#04080f;--panel:#0a1220;--bd:#17233b;--acc:#f0a500;--tx:#e8edf6;--mu:#8a94a6;--fa:#5a6577;--red:#ff5964;--grn:#37d39b;--blu:#5aa9ff;--pur:#b48cff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'DM Sans',system-ui,sans-serif;line-height:1.6;-webkit-font-smoothing:antialiased}
+header{padding:26px 16px 16px;border-bottom:1px solid var(--bd);background:linear-gradient(180deg,#0a1220,#04080f)}
+.wrap{max-width:1040px;margin:0 auto}
+h1{font-family:Syne,sans-serif;font-weight:800;font-size:1.55rem;letter-spacing:-.02em;line-height:1.2}
+.sub{color:var(--mu);font-size:.9rem;margin-top:6px}
+.badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;padding:4px 9px;border-radius:4px;border:1px solid var(--acc);color:var(--acc);margin-bottom:12px}
+.verdict{margin-top:16px;background:#0a1220;border:1px solid var(--bd);border-left:3px solid var(--acc);border-radius:8px;padding:13px 15px;font-size:.92rem;color:#cfd7e4}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:16px}
+@media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--panel);border:1px solid var(--bd);border-radius:8px;padding:11px 12px}
+.kpi .l{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.09em;text-transform:uppercase;color:var(--fa)}
+.kpi .v{font-family:'JetBrains Mono',monospace;font-size:1.16rem;font-weight:700;color:var(--acc);margin-top:3px}
+.kpi .n{font-size:.7rem;color:var(--mu)}
+nav{position:sticky;top:0;z-index:50;background:rgba(4,8,15,.96);backdrop-filter:blur(8px);border-bottom:1px solid var(--bd)}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none;max-width:1040px;margin:0 auto}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;background:none;border:none;border-bottom:2px solid transparent;color:var(--mu);font-family:'JetBrains Mono',monospace;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:14px 15px;cursor:pointer;white-space:nowrap}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+@media(min-width:900px){.tabs{justify-content:center}}
+main{padding:20px 16px 70px}
+.panel{display:none}.panel.on{display:block}
+.sect{font-family:Syne,sans-serif;font-weight:700;font-size:1.18rem;letter-spacing:-.01em}
+.sdesc{color:var(--mu);font-size:.85rem;margin:4px 0 16px}
+.card{background:var(--panel);border:1px solid var(--bd);border-radius:10px;padding:15px 16px;margin-bottom:13px}
+.card h3{font-family:Syne,sans-serif;font-size:1rem;font-weight:700;margin-bottom:8px}
+.card p{font-size:.92rem;color:#c7d0de;margin-bottom:9px}
+.card p:last-child{margin-bottom:0}
+ul{list-style:none}
+li{font-size:.9rem;color:#c7d0de;padding-left:16px;position:relative;margin-bottom:8px}
+li:before{content:"—";position:absolute;left:0;color:var(--acc)}
+b,strong{color:var(--tx)}
+.call{border-left:3px solid var(--acc);background:rgba(240,165,0,.06);border-radius:0 8px 8px 0;padding:12px 14px;margin:12px 0;font-size:.9rem;color:#dbe3ee}
+.call.r{border-left-color:var(--red);background:rgba(255,89,100,.06)}
+.call.g{border-left-color:var(--grn);background:rgba(55,211,155,.06)}
+.q{border-left:3px solid var(--blu);background:rgba(90,169,255,.05);border-radius:0 8px 8px 0;padding:12px 14px;margin:12px 0;font-size:.9rem;font-style:italic;color:#cfd7e4}
+.q .att{display:block;font-style:normal;font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--fa);margin-top:7px;letter-spacing:.05em}
+.tw{overflow-x:auto;margin:10px 0;border:1px solid var(--bd);border-radius:8px}
+table{border-collapse:collapse;min-width:560px;width:100%;font-family:'JetBrains Mono',monospace;font-size:.76rem}
+th{background:#0d1626;color:var(--fa);text-transform:uppercase;letter-spacing:.06em;font-size:.63rem;font-weight:500;padding:9px 10px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:9px 10px;text-align:right;border-top:1px solid var(--bd);color:#c7d0de;white-space:nowrap}
+tbody tr:nth-child(odd){background:rgba(255,255,255,.012)}
+.src{font-family:'JetBrains Mono',monospace;font-size:.63rem;color:var(--fa);margin-top:6px}
+.tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:2px 7px;border-radius:3px;margin:0 5px 5px 0}
+.t-h{background:rgba(55,211,155,.13);color:var(--grn);border:1px solid rgba(55,211,155,.3)}
+.t-m{background:rgba(240,165,0,.13);color:var(--acc);border:1px solid rgba(240,165,0,.3)}
+.t-r{background:rgba(255,89,100,.13);color:var(--red);border:1px solid rgba(255,89,100,.3)}
+.t-i{background:rgba(90,169,255,.13);color:var(--blu);border:1px solid rgba(90,169,255,.3)}
+.cw{position:relative;height:280px;margin-top:8px}
+.chain{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
+@media(min-width:700px){.chain{grid-template-columns:repeat(3,1fr)}}
+.step{background:#0d1626;border:1px solid var(--bd);border-radius:7px;padding:9px 11px}
+.step .n{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--acc);letter-spacing:.08em}
+.step .t{font-size:.82rem;color:#c7d0de;margin-top:2px}
+.pos{color:var(--grn)}.neg{color:var(--red)}
+footer{border-top:1px solid var(--bd);padding:16px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--fa)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<span class="badge">Equity Note · Dashboard View</span>
+<h1>Sterlite Technologies (STL)</h1>
+<div class="sub">From commodity cable to a hard-to-replace optical powerhouse</div>
+<div class="verdict"><b>The verdict in one line:</b> STL makes the ultra-pure glass rods that optical fibre is drawn from — only about six companies worldwide can. That capability just won a $1.1 billion contract from a large cloud company. The moat is real, but returns are still low and the share price already assumes the recovery works.</div>
+<div class="kpis">
+<div class="kpi"><div class="l">Revenue TTM</div><div class="v">₹5,642 cr</div><div class="n">+18.9%</div></div>
+<div class="kpi"><div class="l">Return on capital FY26</div><div class="v">8.1%</div><div class="n">target 20%</div></div>
+<div class="kpi"><div class="l">P/E now</div><div class="v">130.3x</div><div class="n">industry 28.3x</div></div>
+<div class="kpi"><div class="l">Anchor contract</div><div class="v">$1.1 bn</div><div class="n">hyperscaler</div></div>
+</div>
+</div></header>
+<nav><div class="tabs" id="tabs"></div></nav>
+<main class="wrap">
+
+<section class="panel" id="p0">
+<div class="sect">Value Chain</div>
+<div class="sdesc">"Glass to Gigabit" — nine steps from sand-grade silicon to a data centre.</div>
+<div class="card"><h3>The nine-step chain</h3>
+<div class="chain">
+<div class="step"><div class="n">01</div><div class="t">Purest grade silicon</div></div>
+<div class="step"><div class="n">02</div><div class="t">SiCl₄ formation</div></div>
+<div class="step"><div class="n">03</div><div class="t">Chemical vapour deposition</div></div>
+<div class="step"><div class="n">04</div><div class="t">High-precision sintering</div></div>
+<div class="step"><div class="n">05</div><div class="t">Ultra-pure glass preform</div></div>
+<div class="step"><div class="n">06</div><div class="t">Highest grade fibre</div></div>
+<div class="step"><div class="n">07</div><div class="t">High-density fibre cable</div></div>
+<div class="step"><div class="n">08</div><div class="t">Connectivity products</div></div>
+<div class="step"><div class="n">09</div><div class="t">Data centre</div></div>
+</div>
+<div class="q">"It starts with the purest grade of silicon, which we transform through advanced processes like silicon tetrachloride formation, chemical vapor deposition and high precision sintering to create ultrapure glass preforms, which is the backbone of optical fiber. From there, we draw the highest grade fiber, design high-density cables and develop reliable connectivity products that power data centers and telecom networks worldwide."<span class="att">Ankit Agarwal, MD · Q1 FY27 (Jul 2026)</span></div>
+<p>The same wording recurs almost verbatim across the Q4 FY26, Q3 FY26 and Q2 FY26 calls — this is the company's standard articulation of its structural edge, not a one-off.</p></div>
+<div class="card"><h3>Three businesses, four countries</h3>
+<ul>
+<li><b>Optical Fibre:</b> Waluj and Shendra (Aurangabad, India); Jiangsu Sterlite (China).</li>
+<li><b>Fibre Cable + Specialty Cable:</b> Rakholi (Silvassa, India); Sterlite Conduspar (Brazil); Metallurgica Bresciana (Italy); Lugoff, South Carolina (USA).</li>
+<li><b>Optical Connectivity:</b> Dadra &amp; Nagar Haveli (India); Optotec (Italy).</li>
+</ul>
+<p style="margin-top:8px">Capacity claimed at <b>52 Mfkm fibre and 43 Mfkm cable</b>. Stated benefits of the footprint: shield from supply-chain vulnerability, vertical integration, quality control, end-to-end product offering, cost efficiency. Plants run to Industry 4.0 standards with fully automated robotic machinery.</p>
+<div class="src">Source: STL investor presentation (FY24)</div></div>
+<div class="card"><h3>Integration shows up in specific products</h3>
+<ul>
+<li><b>Stellar</b> — described as the world's first G657A2 fibre compatible with legacy networks, extending network life while cutting total ownership cost.</li>
+<li><b>Celesta Ribbon Cables</b> — purpose-engineered for very large data-centre networks, with high-density packing and faster installation.</li>
+</ul>
+<div class="call"><b>Bottom line on the chain:</b> STL controls the full stack, which is exactly what makes it hard to copy. Whether that integration converts into sustained profit is a separate, still-unresolved question.</div></div>
+</section>
+
+<section class="panel" id="p1">
+<div class="sect">Competitive Moat</div>
+<div class="sdesc">What gets harder to replace over time — and what's still unproven.</div>
+<div class="card"><h3>The glass preform is the genuine barrier</h3>
+<p>A <b>preform</b> is the thick ultra-pure glass rod that fibre is drawn from — the bottleneck of the whole chain. Making one needs semiconductor-grade chemistry, and only a handful of companies worldwide can do it at scale. You cannot buy a preform plant off the shelf.</p>
+<div class="q">"With over 30 years of Optical expertise, STL is amongst six players globally to have end-to-end capability across the fibre value chain, starting with its glass preform, fibre, cables and finally, Optical Connectivity solutions."<span class="att">Press release · Mar 2024</span></div>
+<p>Management calls the preform "truly the backbone of optical fiber around the world."</p></div>
+<div class="card"><h3>Scale and accumulated know-how</h3>
+<ul>
+<li><b>785+ patents</b> and 10+ zero-waste facilities worldwide (Q1 FY27).</li>
+<li><b>30+ years</b> of optical expertise.</li>
+<li><b>~8% global ex-China cable market share</b>, held stable through FY26 despite tariff and germanium headwinds.</li>
+<li>India's #1 end-to-end optical manufacturer.</li>
+</ul></div>
+<div class="card"><h3>Pricing power sits in premium products, not volume</h3>
+<ul>
+<li><span class="tag t-h">Commercialised</span> <b>G.654.E fibre</b> — ~30% lower signal loss and ~50% larger core, so it can carry the high optical power of next-generation lasers used in AI networks. Moved from development to commercialisation in Q1 FY27. Management says this puts STL among very few global players ready for large-scale deployment.</li>
+<li><span class="tag t-i">First in India</span> <b>Hollow-Core Fibre</b> — light travels through an air-filled core, delivering 30–47% lower delay (latency).</li>
+<li><span class="tag t-i">Capacity</span> <b>Multi-Core Fibre</b> — 4 to 7x more capacity in the same physical space; suited to AI data centres and long-haul 5G.</li>
+</ul></div>
+<div class="card"><h3>Switching costs: the attach-rate lever</h3>
+<p><b>Attach rate</b> = how much connectivity kit (plugs, terminations, panels) STL sells alongside every km of fibre. Higher attach rate means more revenue per deployment and a customer locked into STL's whole system.</p>
+<ul>
+<li>FY26 attach rate <b>15%</b>, down from <b>22%</b> in FY25 — driven mainly by product mix and project timing, plus a sharp acceleration in cable revenue that raised the base.</li>
+<li>Stated goal is to meaningfully increase attach rates while expanding cable share.</li>
+</ul>
+<div class="call r"><b>Moat verdict:</b> preform capability, 785 patents, four-country footprint and a growing premium portfolio make STL genuinely hard to replace at the manufacturing level. The <b>unproven</b> part is whether that pricing power turns into margin at scale — and whether the ~8% share reflects discipline or tariff-driven share grabbing.</div></div>
+</section>
+
+<section class="panel" id="p2">
+<div class="sect">Financials</div>
+<div class="sdesc">The recovery is real, but the battery is still recharging.</div>
+<div class="card"><h3>Four-year trajectory</h3>
+<div class="cw"><canvas id="c_st1"></canvas></div>
+<div class="tw"><table><thead><tr><th>Period</th><th>Revenue ₹ cr</th><th>Growth</th><th>OPM</th><th>PAT ₹ cr</th><th>ROE</th><th>ROCE</th><th>D/E</th><th>Int. cover</th></tr></thead><tbody>
+<tr><td>Latest (TTM)</td><td>5,642</td><td>18.9%</td><td>14.7%</td><td>243</td><td>—</td><td>—</td><td>—</td><td>2.53</td></tr>
+<tr><td>FY26</td><td>4,745</td><td>18.7%</td><td>12.0%</td><td>56</td><td>2.6%</td><td>8.1%</td><td>0.91</td><td>1.48</td></tr>
+<tr><td>FY25</td><td>3,996</td><td class="neg">-2.1%</td><td>10.4%</td><td class="neg">-72</td><td class="neg">-3.6%</td><td>3.5%</td><td>0.97</td><td>0.56</td></tr>
+<tr><td>FY24</td><td>4,083</td><td class="neg">-41.0%</td><td>11.5%</td><td class="neg">-71</td><td class="neg">-3.5%</td><td>4.0%</td><td>1.67</td><td>0.74</td></tr>
+<tr><td>FY23</td><td>6,925</td><td>27.4%</td><td>12.9%</td><td>231</td><td>11.1%</td><td>10.6%</td><td>1.83</td><td>2.01</td></tr>
+</tbody></table></div>
+<div class="src">Source: Reported financials (FY23–FY26). The FY24 revenue drop reflects the demerger of the Global Services Business (now Invenia); FY23's ₹6,925 cr included it.</div>
+<p style="margin-top:10px"><b>How to read it:</b> FY26 was the turning point — profit went positive, return on capital doubled to 8.1%, and the company could cover its interest bill 1.48x over. But 8.1% is still far below the 20% steady-state target set during the investment phase. The latest trailing snapshot shows margin at 14.7% and profit of ₹243 cr — the benefit of higher volumes over fixed costs (operating leverage) is starting to show.</p></div>
+<div class="card"><h3>Segments: optical is the whole story now</h3>
+<div class="tw"><table style="min-width:420px"><thead><tr><th>Segment (FY26)</th><th>Revenue ₹ cr</th><th>PBIT ₹ cr</th><th>PBIT margin</th></tr></thead><tbody>
+<tr><td>Optical Networking</td><td>4,486</td><td>606</td><td class="pos">13.5%</td></tr>
+<tr><td>Digital &amp; Technology Solutions</td><td>284</td><td>3</td><td class="neg">1.1%</td></tr>
+</tbody></table></div>
+<div class="src">Source: Segment reporting (FY26). The digital unit is negligible — the entire thesis rests on Optical Networking.</div></div>
+<div class="card"><h3>The capex cycle is done — that's the pivot</h3>
+<div class="q">"practically completely done with our capital and our capacity additions globally... if you look at our capital spend for the year, it will probably be around Rs.120-130 crores maximum. So, compared to previous years our capital expenditure has also started to come down and will largely be much more of maintenance capex."<span class="att">Ankit Agarwal · Q3 FY25</span></div>
+<ul>
+<li>Capacity now north of 50 Mfkm on glass and fibre, north of 42 Mfkm on cable, including the US investment.</li>
+<li>The Lugoff, South Carolina plant was commissioned in FY24, causing the depreciation step-up from ₹309 cr (FY23) to ₹335 cr (FY24).</li>
+<li>Gross debt fell from ₹3,667 cr to ₹3,225 cr, net debt from ₹3,127 cr to ₹2,804 cr between FY23 and FY24. Debt-to-equity improved from 1.83x to 0.91x by FY26.</li>
+</ul>
+<div class="call r"><b>Financial verdict:</b> balance sheet repaired, spending normalised, FY27 positioned as the payoff year. But at 8.1% return on capital the company has <b>not yet earned its cost of capital</b>, and factory usage was still around 50% in Q3 FY25. The thesis depends on utilisation and price recovery, not new plants.</div></div>
+</section>
+
+<section class="panel" id="p3">
+<div class="sect">Growth &amp; Scale</div>
+<div class="sdesc">Three multi-year demand cycles, one anchor deal.</div>
+<div class="card"><h3>The $1.1 billion hyperscaler deal</h3>
+<p>The strongest single piece of evidence the strategy is working: a <b>$1.1 billion contract</b> from a hyperscaler (a very large cloud operator), positioned as validation of the integrated connectivity model.</p>
+<div class="q">"As we step into FY27, our core strategic priorities have evolved and are delivering tangible results. Beyond driving market share and attach rates in our core optical business, we are actively pivoting towards increasing our revenue share from integrated connectivity solutions in partnership with key customers."<span class="att">Management commentary · FY27</span></div>
+<p>This is a step-change in order-book scale versus STL's historical optical business, anchored in the "glass-to-terabit" integrated model.</p></div>
+<div class="card"><h3>The three demand cycles</h3>
+<ul>
+<li><span class="tag t-h">Primary</span> <b>AI / data centres.</b> Hyperscaler spending forecasts upgraded from "well over $600 billion by 2027" to <b>$805 billion</b> (Morgan Stanley). AI workloads need roughly <b>36x more fibre</b> than regular workloads, and as chip speeds move from 400-gig to 800-gig to 1.6-terabit, copper hits its limit and fibre becomes essential. STL's answer is the Neuralis AI data-centre portfolio.</li>
+<li><span class="tag t-m">Secondary</span> <b>5G / network densification.</b> Global 5G subscriptions forecast at 640 crore by 2030; fibre connection of mobile sites rising from 38% (2024) to 63% by 2029.</li>
+<li><span class="tag t-i">Policy</span> <b>Government broadband.</b> BharatNet Phase-III (₹1.3 trillion in India) and US BEAD ($42 billion). Home-broadband fibre demand rising from 15.1 crore to 17.1 crore fibre-km globally by 2030.</li>
+</ul></div>
+<div class="card"><h3>Revenue trajectory supporting the thesis</h3>
+<ul>
+<li>Enterprise + data centre share of revenue: <b>21%</b> (Q4 FY25) → <b>23%</b> (Q1 FY26) → <b>20% YTD</b> (Q3 FY26), with management on track to scale it to <b>30%</b>.</li>
+<li>India data-centre capacity set to grow 5x from 1.4 GW (2025) to 8 GW by 2030 — anchored by Google, Microsoft, Adani, Reliance and TCS.</li>
+<li>North America data-centre capacity to double from 63 GW (2025) to 126 GW by 2030.</li>
+</ul></div>
+<div class="card"><h3>The tariff tailwind</h3>
+<p>Management argues the multi-country footprint is now a strategic asset: with expansion complete, STL is closer to key markets and already sees strong traction in North America. The US–China tariff environment is opening opportunities for India-based manufacturing; the US plant serves local BABA-compliant demand while Indian plants serve domestic and European markets.</p>
+<div class="call"><b>Growth verdict:</b> the demand story is credible and quantified, and the $1.1 bn deal gives it contractual backbone. The execution risk is converting that backlog into margin — the FY26 attach-rate dip and the still-modest return on capital show that conversion isn't complete.</div></div>
+</section>
+
+<section class="panel" id="p4">
+<div class="sect">Governance &amp; Risk</div>
+<div class="sdesc">The honest ledger — the litigation, the pay flag, and the price.</div>
+<div class="card"><h3><span class="tag t-r">Largest overhang</span> The $101.25 million US jury verdict</h3>
+<ul>
+<li>Verdict confirmed by the Court on <b>29 August 2025</b> at <b>$101.25 million</b>, including $4.75 million in attorneys' fees and costs, against subsidiary Sterlite Technologies Inc.</li>
+<li>Original verdict (Aug 2024): $96.5 million against STI and $0.2 million against the ex-employee.</li>
+<li>STI has appealed to the US Court of Appeals for the Fourth Circuit and deposited a <b>$41.53 million bond</b>.</li>
+</ul>
+<div class="q">"STI believes the judgment is unsupported by the testimony and evidence presented at trial and has filed an appeal with the United States Court of Appeals for the Fourth Circuit and deposited a Bond of $41.53 million. The ultimate financial implications, if any, cannot be ascertained at this stage."</div>
+<p><b>No provision has been quantified</b> — the exposure remains unascertained pending appeal. The $41.53 million bond is already cash-collateralised.</p></div>
+<div class="card"><h3><span class="tag t-m">Yellow flag</span> Promoter remuneration</h3>
+<p>The FY24 results disclosed managerial pay <b>except for an aggregate ₹14 crore that exceeded statutory limits</b> under Section 197 read with Schedule V of the Companies Act. The company said it would seek approval at the ensuing Annual General Meeting. A governance-discipline flag worth weighing alongside the business progress.</p></div>
+<div class="card"><h3>Other risk disclosures</h3>
+<ul>
+<li><b>Customer concentration:</b> officially receivables are spread across many customers with no significant credit concentration, with per-customer exposure limits. But the $1.1 bn hyperscaler deal introduces meaningful single-customer dependency that earlier disclosures didn't reflect.</li>
+<li><b>Input costs:</b> STL says vertical integration means a single raw-material move doesn't significantly hit its cost structure — though FY22 saw sharp hikes in polymers, metals, specialty coatings and helium.</li>
+<li><b>Interest rates:</b> rupee borrowings track MIBOR; foreign borrowings tracked USD LIBOR (as disclosed FY21).</li>
+</ul></div>
+</section>
+
+<section class="panel" id="p5">
+<div class="sect">Valuation &amp; Final Assessment</div>
+<div class="sdesc">The market has already front-loaded the recovery.</div>
+<div class="card">
+<div class="tw"><table style="min-width:420px"><thead><tr><th>Multiple</th><th>Current</th><th>3-Yr median</th><th>Industry</th></tr></thead><tbody>
+<tr><td>P/E</td><td>130.3x</td><td>32.8x</td><td>28.3x</td></tr>
+<tr><td>EV/EBITDA</td><td>42.1x</td><td>26.5x</td><td>25.9x</td></tr>
+<tr><td>P/B</td><td>9.1x</td><td>6.1x</td><td>3.1x</td></tr>
+</tbody></table></div>
+<div class="src">Source: Valuation metrics. PEG of 12.3x signals strong forward growth is already priced in.</div>
+<div class="cw"><canvas id="c_st2"></canvas></div>
+</div>
+<div class="card"><h3>Final assessment</h3>
+<ul>
+<li><span class="tag t-h">Real</span> <b>The moat:</b> preform capability (1 of ~6 globally), 785+ patents, a four-country integrated footprint, and premium products (G.654.E, Hollow Core, Multi-Core) make STL genuinely difficult to replace.</li>
+<li><span class="tag t-h">Credible</span> <b>The strategy:</b> the $1.1 bn contract and the connectivity pivot give the thesis contractual backbone, with data-centre/enterprise revenue targeted at 30%.</li>
+<li><span class="tag t-m">Charging</span> <b>The financials:</b> 8.1% return on capital is far below the 20% target, attach rates moderated to 15%, utilisation ~50% as of Q3 FY25. The FY27 payoff assumes operating leverage actually materialises.</li>
+<li><span class="tag t-r">Demanding</span> <b>The price:</b> 130x earnings and 42x EV/EBITDA versus 25.9x industry — the recovery is already in the price.</li>
+<li><span class="tag t-i">Balanced</span> <b>The risk ledger:</b> the $101.25M verdict (under appeal, bond posted) and the ₹14 cr pay breach are real flags, partially offset by clean deleveraging from 1.83x to 0.91x.</li>
+</ul>
+<div class="call"><b>The honest answer:</b> STL has become harder to replace — the preform barrier and the hyperscaler contract prove that. Whether it's a good investment <i>at current levels</i> depends on return on capital re-rating from 8% toward the 20% target in FY27–FY28, against a valuation that is no longer discounting the thesis but pricing it as the base case.</div></div>
+</section>
+
+</main>
+<footer>Dashboard view of the supplied report. No figures added beyond the source.</footer>
+<script>
+var TABS=["Value Chain","Moat","Financials","Growth","Risk","Valuation"];
+var tb=document.getElementById("tabs");
+TABS.forEach(function(t,i){var b=document.createElement("button");b.className="tab"+(i===0?" on":"");b.textContent=t;b.onclick=function(){go(i,b)};tb.appendChild(b)});
+document.getElementById("p0").classList.add("on");
+function go(i,b){
+  document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("on")});
+  b.classList.add("on");
+  document.querySelectorAll(".panel").forEach(function(x){x.classList.remove("on")});
+  document.getElementById("p"+i).classList.add("on");
+  b.scrollIntoView({block:"nearest",inline:"center",behavior:"smooth"});
+  window.scrollTo({top:0,behavior:"smooth"});
+  draw(i);
+}
+var done={};
+var G="#8a94a6",GRID="rgba(23,35,59,.9)";
+function draw(i){
+  if(done[i])return; done[i]=true;
+  if(i===2){
+    new Chart(document.getElementById("c_st1"),{type:"bar",data:{labels:["FY23","FY24","FY25","FY26","TTM"],datasets:[
+      {type:"bar",label:"Revenue (₹ cr)",data:[6925,4083,3996,4745,5642],backgroundColor:"rgba(240,165,0,.55)",borderColor:"#f0a500",borderWidth:1,yAxisID:"y"},
+      {type:"line",label:"ROCE %",data:[10.6,4.0,3.5,8.1,null],borderColor:"#37d39b",backgroundColor:"#37d39b",tension:.3,spanGaps:false,yAxisID:"y1"},
+      {type:"line",label:"OPM %",data:[12.9,11.5,10.4,12.0,14.7],borderColor:"#5aa9ff",backgroundColor:"#5aa9ff",tension:.3,yAxisID:"y1"}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:G,font:{size:10}}},title:{display:true,text:"Demerger dip, then FY26 inflection",color:"#e8edf6",font:{size:12}}},scales:{
+      x:{ticks:{color:G},grid:{color:GRID}},
+      y:{position:"left",ticks:{color:G},grid:{color:GRID},title:{display:true,text:"₹ cr",color:G}},
+      y1:{position:"right",min:0,max:20,ticks:{color:G},grid:{display:false},title:{display:true,text:"%",color:G}}}}});
+  }
+  if(i===5){
+    new Chart(document.getElementById("c_st2"),{type:"bar",data:{labels:["P/E","EV/EBITDA","P/B"],datasets:[
+      {label:"Current",data:[130.3,42.1,9.1],backgroundColor:"#ff5964"},
+      {label:"3-Yr median",data:[32.8,26.5,6.1],backgroundColor:"#5aa9ff"},
+      {label:"Industry",data:[28.3,25.9,3.1],backgroundColor:"#5a6577"}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:G,font:{size:10}}},title:{display:true,text:"Current multiples far above medians",color:"#e8edf6",font:{size:12}}},scales:{x:{ticks:{color:G},grid:{display:false}},y:{ticks:{color:G},grid:{color:GRID}}}}});
+  }
+}
+</script>
+</body>
+</html>
